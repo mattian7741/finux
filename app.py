@@ -24,18 +24,22 @@ def generate_date_range(start_date, end_date, bucket_size):
 
     if bucket_size == 'day':
         while current_date <= end_date:
-            date_list.append(current_date.strftime('%Y-%m-%d'))
+            date_list.append((current_date.strftime('%Y-%m-%d'), current_date.strftime('%Y-%m-%d')))
             current_date += timedelta(days=1)
     elif bucket_size == 'week':
         while current_date <= end_date:
-            date_list.append(current_date.strftime('%Y-%m-%d'))  # Standardize format for weeks
-            current_date += timedelta(weeks=1)
+            week_start = current_date - timedelta(days=current_date.weekday())  # Start of the week (Monday)
+            week_end = week_start + timedelta(days=6)  # End of the week (Sunday)
+            date_list.append((week_start.strftime('%Y-%m-%d'), week_end.strftime('%Y-%m-%d')))
+            current_date = week_end + timedelta(days=1)
     elif bucket_size == 'month':
         while current_date <= end_date:
-            date_list.append(current_date.strftime('%Y-%m-%d'))  # Standardize format for months
-            next_month = current_date.month % 12 + 1
-            year_increment = (current_date.month + 1) // 13
-            current_date = current_date.replace(year=current_date.year + year_increment, month=next_month)
+            month_start = current_date.replace(day=1)
+            next_month = month_start.month % 12 + 1
+            year_increment = (month_start.month + 1) // 13
+            month_end = (month_start.replace(month=next_month, year=month_start.year + year_increment) - timedelta(days=1))
+            date_list.append((month_start.strftime('%Y-%m-%d'), month_end.strftime('%Y-%m-%d')))
+            current_date = month_end + timedelta(days=1)
 
     return date_list
 
@@ -47,30 +51,30 @@ def data():
     bucket_size = request.args.get('bucketSize', 'day')
 
     db = get_db()
-    query = "SELECT date(tx_date) AS date, SUM(tx_amount) AS amount FROM all_transactions WHERE tx_date BETWEEN ? AND ?"
     params = [start_date, end_date]
 
     if selected_categories:
         placeholders = ', '.join(['?'] * len(selected_categories))
-        query += f" AND tx_category IN ({placeholders})"
+        category_filter = f" AND tx_category IN ({placeholders})"
         params.extend(selected_categories)
-
-    if bucket_size == 'week':
-        query += " GROUP BY strftime('%Y-%W', tx_date)"
-    elif bucket_size == 'month':
-        query += " GROUP BY strftime('%Y-%m', tx_date)"
     else:
-        query += " GROUP BY date(tx_date)"
+        category_filter = ""
 
-    query += " ORDER BY date"
-    data = db.execute(query, params).fetchall()
-    
-    full_dates = generate_date_range(datetime.strptime(start_date, '%Y-%m-%d'), datetime.strptime(end_date, '%Y-%m-%d'), bucket_size)
-    data_dict = {row['date']: row['amount'] for row in data}
+    # Generate full date ranges
+    date_ranges = generate_date_range(datetime.strptime(start_date, '%Y-%m-%d'), datetime.strptime(end_date, '%Y-%m-%d'), bucket_size)
 
-    result = [{'date': date, 'amount': data_dict.get(date, 0)} for date in full_dates]
+    # Aggregate data into each bucket based on the generated date ranges
+    result = []
+    for range_start, range_end in date_ranges:
+        query = f"""
+            SELECT SUM(tx_amount) AS amount
+            FROM all_transactions
+            WHERE tx_date BETWEEN ? AND ? {category_filter}
+        """
+        total = db.execute(query, (range_start, range_end, *selected_categories)).fetchone()["amount"]
+        result.append({'date': range_start, 'amount': total if total is not None else 0})
+
     return jsonify(result)
-
 
 def query_db(query, args=(), one=False):
     cur = get_db().execute(query, args)

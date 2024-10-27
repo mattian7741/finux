@@ -114,8 +114,6 @@
 
                     if (chart) chart.destroy();
                     
-
-
                     chart = new Chart(ctx, {
                         type: 'bar',
                         data: {
@@ -133,12 +131,12 @@
                             maintainAspectRatio: false,
                             scales: {
                                 x: {
-                                    type: 'time',  // Ensure the type is set to 'time' for time-based scaling
+                                    type: 'time',
                                     time: {
                                         unit: params.get('bucketSize') || 'day',
                                         displayFormats: {
-                                            day: 'MMM dd',
-                                            week: 'MMM dd',
+                                            day: 'MMM d',
+                                            week: 'MMM d',
                                             month: 'MMM yyyy'
                                         }
                                     }
@@ -154,8 +152,6 @@
                             }
                         }
                     });
-
-
                 })
                 .catch(error => console.error('Error loading the data:', error));
         }
