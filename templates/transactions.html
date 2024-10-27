@@ -113,36 +113,34 @@
             const params = new URLSearchParams(window.location.search);
             const isStacked = document.getElementById('stackToggle').checked; // Check if stacked mode is enabled
 
-            fetch('/data?' + params.toString())
+            // Choose the appropriate endpoint based on the stacking mode
+            const endpoint = isStacked ? '/data' : '/data_combined';
+
+            fetch(endpoint + '?' + params.toString())
                 .then(response => response.json())
                 .then(data => {
-                    // Check if data is empty
                     if (!data || Object.keys(data).length === 0) {
                         console.warn("No data available for the selected criteria.");
-                        if (chart) chart.destroy(); // Clear chart if no data
+                        if (chart) chart.destroy();
                         return;
                     }
 
-                    const dates = Object.values(data)[0].map(entry => entry.date); // Use dates from the first category
+                    const dates = isStacked ? Object.values(data)[0].map(entry => entry.date) : data.map(entry => entry.date);
 
                     let datasets;
-                    if (isStacked && Object.keys(data).length > 1) {
-                        // Separate datasets for each category when stacked mode is enabled
+                    if (isStacked) {
                         datasets = Object.keys(data).map((category, index) => ({
                             label: category,
-                            data: data[category].map(entry => -entry.amount), // Invert amounts
+                            data: data[category].map(entry => -entry.amount),
                             backgroundColor: `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, 0.5)`,
                             borderColor: `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, 1)`,
                             borderWidth: 1
                         }));
                     } else {
-                        // Single combined dataset
-                        const combinedData = dates.map((date, i) => 
-                            Object.keys(data).reduce((sum, category) => sum + data[category][i].amount, 0)
-                        );
+                        const combinedData = data.map(entry => -entry.amount);
                         datasets = [{
                             label: 'Combined Amount',
-                            data: combinedData.map(value => -value), // Invert amounts
+                            data: combinedData,
                             backgroundColor: 'rgba(75, 192, 192, 0.5)',
                             borderColor: 'rgba(75, 192, 192, 1)',
                             borderWidth: 1
@@ -163,7 +161,7 @@
                             scales: {
                                 x: {
                                     type: 'time',
-                                    stacked: isStacked, // Stack x-axis when in stacked mode
+                                    stacked: isStacked,
                                     time: {
                                         unit: params.get('bucketSize') || 'day',
                                         displayFormats: {
@@ -175,7 +173,7 @@
                                 },
                                 y: {
                                     beginAtZero: true,
-                                    stacked: isStacked, // Stack y-axis when in stacked mode
+                                    stacked: isStacked,
                                     ticks: {
                                         callback: function(value) {
                                             return Math.abs(value);
@@ -189,21 +187,37 @@
                 .catch(error => console.error('Error loading the data:', error));
         }
 
+
         function applyFilter() {
-            const startDate = document.getElementById('startDate').value;
-            const endDate = document.getElementById('endDate').value;
-            const selectedCategories = Array.from(document.getElementById('categoryFilter').selectedOptions).map(option => option.value);
-            const bucketSize = document.querySelector('input[name="bucketSize"]:checked').value;
+            event.preventDefault();
+            const select = document.getElementById('categoryFilter');
+            const selectedCategories = Array.from(select.selectedOptions).map(option => option.value);
+            const queryParams = new URLSearchParams(window.location.search);
 
-            const queryParams = new URLSearchParams();
-
-            if (startDate) queryParams.set('startDate', startDate);
-            if (endDate) queryParams.set('endDate', endDate);
-            queryParams.set('bucketSize', bucketSize);
+            // Update the date range and selected categories in the URL
+            queryParams.set('startDate', document.getElementById('startDate').value);
+            queryParams.set('endDate', document.getElementById('endDate').value);
+            queryParams.delete('tx_category'); // Clear previous category selections
             selectedCategories.forEach(cat => queryParams.append('tx_category', cat));
 
             window.location.search = queryParams.toString();
         }
+
+        // function applyFilter() {
+        //     const startDate = document.getElementById('startDate').value;
+        //     const endDate = document.getElementById('endDate').value;
+        //     const selectedCategories = Array.from(document.getElementById('categoryFilter').selectedOptions).map(option => option.value);
+        //     const bucketSize = document.querySelector('input[name="bucketSize"]:checked').value;
+
+        //     const queryParams = new URLSearchParams();
+
+        //     if (startDate) queryParams.set('startDate', startDate);
+        //     if (endDate) queryParams.set('endDate', endDate);
+        //     queryParams.set('bucketSize', bucketSize);
+        //     selectedCategories.forEach(cat => queryParams.append('tx_category', cat));
+
+        //     window.location.search = queryParams.toString();
+        // }
 
         function updateBucketSize(size) {
             // Update bucket size in URL and refresh data with new setting

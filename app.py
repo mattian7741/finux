@@ -43,6 +43,93 @@ def generate_date_range(start_date, end_date, bucket_size):
 
     return date_list
 
+@app.route('/data_combined')
+def data_combined():
+    start_date = request.args.get('startDate') or datetime(datetime.now().year, 1, 1).strftime('%Y-%m-%d')
+    end_date = request.args.get('endDate') or datetime.now().strftime('%Y-%m-%d')
+    bucket_size = request.args.get('bucketSize', 'day')
+    selected_categories = request.args.getlist('tx_category')
+
+    db = get_db()
+    
+    # Generate full date ranges
+    date_ranges = generate_date_range(datetime.strptime(start_date, '%Y-%m-%d'), datetime.strptime(end_date, '%Y-%m-%d'), bucket_size)
+    
+    # Base query and parameters
+    query = "SELECT SUM(tx_amount) AS amount FROM all_transactions WHERE tx_date BETWEEN ? AND ?"
+    params = [start_date, end_date]
+
+    # Adjust query to include category filtering if selected_categories is provided
+    if selected_categories:
+        placeholders = ','.join('?' * len(selected_categories))
+        query += f" AND tx_category IN ({placeholders})"
+        params.extend(selected_categories)
+    
+    result = []
+    for range_start, range_end in date_ranges:
+        # Update the date range for each period while keeping category params if applicable
+        query_params = [range_start, range_end] + (selected_categories if selected_categories else [])
+        total = db.execute(query, query_params).fetchone()["amount"]
+        result.append({'date': range_start, 'amount': total if total is not None else 0})
+
+    return jsonify(result)
+
+# @app.route('/data_combined')
+# def data_combined():
+#     start_date = request.args.get('startDate') or datetime(datetime.now().year, 1, 1).strftime('%Y-%m-%d')
+#     end_date = request.args.get('endDate') or datetime.now().strftime('%Y-%m-%d')
+#     bucket_size = request.args.get('bucketSize', 'day')
+#     selected_categories = request.args.getlist('tx_category')
+
+#     db = get_db()
+#     params = [start_date, end_date]
+
+#     # Generate full date ranges
+#     date_ranges = generate_date_range(datetime.strptime(start_date, '%Y-%m-%d'), datetime.strptime(end_date, '%Y-%m-%d'), bucket_size)
+    
+#     # Combine all categories in each date range
+#     result = []
+#     query = "SELECT SUM(tx_amount) AS amount FROM all_transactions WHERE tx_date BETWEEN ? AND ?"
+#     if selected_categories:
+#         placeholders = ','.join('?' * len(selected_categories))
+#         query += f" AND tx_category IN ({placeholders})"
+#         params.extend(selected_categories)
+
+#     for range_start, range_end in date_ranges:
+#         query_params = [range_start, range_end] + params  # Include only necessary params
+#         total = db.execute(query, query_params).fetchone()["amount"]
+#         result.append({'date': range_start, 'amount': total if total is not None else 0})
+    
+#     # for range_start, range_end in date_ranges:
+#     #     total = db.execute(query, (range_start, range_end) + tuple(params)).fetchone()["amount"]
+#     #     result.append({'date': range_start, 'amount': total if total is not None else 0})
+
+#     return jsonify(result)
+
+# @app.route('/data_combined')
+# def data_combined():
+#     start_date = request.args.get('startDate') or datetime(datetime.now().year, 1, 1).strftime('%Y-%m-%d')
+#     end_date = request.args.get('endDate') or datetime.now().strftime('%Y-%m-%d')
+#     bucket_size = request.args.get('bucketSize', 'day')
+    
+#     db = get_db()
+
+#     # Generate full date ranges
+#     date_ranges = generate_date_range(datetime.strptime(start_date, '%Y-%m-%d'), datetime.strptime(end_date, '%Y-%m-%d'), bucket_size)
+    
+#     # Combine all categories in each date range
+#     result = []
+#     for range_start, range_end in date_ranges:
+#         query = """
+#             SELECT SUM(tx_amount) AS amount
+#             FROM all_transactions
+#             WHERE tx_date BETWEEN ? AND ?
+#         """
+#         total = db.execute(query, (range_start, range_end)).fetchone()["amount"]
+#         result.append({'date': range_start, 'amount': total if total is not None else 0})
+
+#     return jsonify(result)
+
 @app.route('/data')
 def data():
     selected_categories = request.args.getlist('tx_category')
@@ -52,14 +139,14 @@ def data():
 
     db = get_db()
 
-    # Default to all categories if none are selected
+    # If no categories are selected, include all categories
     if not selected_categories:
         selected_categories = [row['tx_category'] for row in db.execute("SELECT DISTINCT tx_category FROM all_transactions")]
 
-    # Generate full date ranges
+    # Generate date ranges based on bucket size
     date_ranges = generate_date_range(datetime.strptime(start_date, '%Y-%m-%d'), datetime.strptime(end_date, '%Y-%m-%d'), bucket_size)
 
-    # Prepare results for each selected category in each date range
+    # Prepare data for each selected category
     result = {}
     for category in selected_categories:
         category_data = []
@@ -84,20 +171,59 @@ def query_db(query, args=(), one=False):
 
 @app.route('/')
 def home():
-    categories = query_db('SELECT DISTINCT tx_category FROM all_transactions WHERE tx_category IS NOT NULL ORDER BY tx_category')
+    start_date = request.args.get('startDate') or datetime(datetime.now().year, 1, 1).strftime('%Y-%m-%d')
+    end_date = request.args.get('endDate') or datetime.now().strftime('%Y-%m-%d')
     selected_categories = request.args.getlist('tx_category')
+    
+    db = get_db()
+    params = [start_date, end_date]
+
+    # Adjust query to filter transactions by date range and categories if specified
+    query = 'SELECT * FROM all_transactions WHERE tx_date BETWEEN ? AND ?'
     
     if selected_categories:
         placeholders = ','.join('?' * len(selected_categories))
-        query = f'SELECT * FROM all_transactions WHERE tx_category IN ({placeholders})'
-        sum_query = f'SELECT SUM(tx_amount) FROM all_transactions WHERE tx_category IN ({placeholders})'
-        transactions = query_db(query, selected_categories)
-        total_amount = query_db(sum_query, selected_categories, one=True)[0]
-    else:
-        transactions = query_db('SELECT * FROM all_transactions')
-        total_amount = query_db('SELECT SUM(tx_amount) FROM all_transactions', one=True)[0]
+        query += f' AND tx_category IN ({placeholders})'
+        params.extend(selected_categories)
 
-    return render_template('transactions.html', transactions=transactions, categories=categories, selected_categories=selected_categories, total_amount=total_amount)
+    # Fetch transactions within date range and selected categories (if any)
+    transactions = db.execute(query, params).fetchall()
+
+    # Calculate the total amount within the selected date range and categories
+    sum_query = 'SELECT SUM(tx_amount) FROM all_transactions WHERE tx_date BETWEEN ? AND ?'
+    if selected_categories:
+        sum_query += f' AND tx_category IN ({placeholders})'
+    total_amount = db.execute(sum_query, params).fetchone()[0] or 0
+
+    # Fetch distinct categories for filter options
+    categories = db.execute('SELECT DISTINCT tx_category FROM all_transactions WHERE tx_category IS NOT NULL ORDER BY tx_category').fetchall()
+
+    return render_template(
+        'transactions.html',
+        transactions=transactions,
+        categories=categories,
+        selected_categories=selected_categories,
+        total_amount=total_amount,
+        start_date=start_date,
+        end_date=end_date
+    )
+
+# @app.route('/')
+# def home():
+#     categories = query_db('SELECT DISTINCT tx_category FROM all_transactions WHERE tx_category IS NOT NULL ORDER BY tx_category')
+#     selected_categories = request.args.getlist('tx_category')
+    
+#     if selected_categories:
+#         placeholders = ','.join('?' * len(selected_categories))
+#         query = f'SELECT * FROM all_transactions WHERE tx_category IN ({placeholders})'
+#         sum_query = f'SELECT SUM(tx_amount) FROM all_transactions WHERE tx_category IN ({placeholders})'
+#         transactions = query_db(query, selected_categories)
+#         total_amount = query_db(sum_query, selected_categories, one=True)[0]
+#     else:
+#         transactions = query_db('SELECT * FROM all_transactions')
+#         total_amount = query_db('SELECT SUM(tx_amount) FROM all_transactions', one=True)[0]
+
+#     return render_template('transactions.html', transactions=transactions, categories=categories, selected_categories=selected_categories, total_amount=total_amount)
 
 @app.route('/merchants')
 def merchants():
