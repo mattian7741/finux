@@ -38,6 +38,8 @@
         <option value="{{ category[0] }}" {% if category[0] in selected_categories %}selected{% endif %}>{{ category[0] }}</option>
         {% endfor %}
     </select>
+    <label for="stackToggle">Stacked Bar Chart</label>
+    <input type="checkbox" id="stackToggle" onchange="toggleStackedMode()" />
 
     <!-- Bucket Size Selection -->
     <div>
@@ -102,29 +104,49 @@
             fetchAndRenderChartData();
         });
 
+        function toggleStackedMode() {
+            fetchAndRenderChartData(); // Reload the chart with the new stacking mode
+        }
+
         function fetchAndRenderChartData() {
             const ctx = document.getElementById('amountChart').getContext('2d');
             const params = new URLSearchParams(window.location.search);
+            const isStacked = document.getElementById('stackToggle').checked; // Check if stacked mode is enabled
 
             fetch('/data?' + params.toString())
                 .then(response => response.json())
                 .then(data => {
-                    const dates = data.map(entry => entry.date);
-                    const invertedAmounts = data.map(entry => -entry.amount);
+                    const dates = Object.values(data)[0].map(entry => entry.date); // Use dates from the first category
+
+                    let datasets;
+                    if (isStacked && Object.keys(data).length > 1) {
+                        // Separate datasets for each category when stacked mode is enabled
+                        datasets = Object.keys(data).map((category, index) => ({
+                            label: category,
+                            data: data[category].map(entry => -entry.amount), // Invert amounts
+                            backgroundColor: `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, 0.5)`,
+                            borderColor: `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, 1)`,
+                            borderWidth: 1
+                        }));
+                    } else {
+                        // Single combined dataset
+                        const combinedData = dates.map((date, i) => Object.keys(data).reduce((sum, category) => sum + data[category][i].amount, 0));
+                        datasets = [{
+                            label: 'Combined Amount',
+                            data: combinedData.map(value => -value), // Invert amounts
+                            backgroundColor: 'rgba(75, 192, 192, 0.5)',
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            borderWidth: 1
+                        }];
+                    }
 
                     if (chart) chart.destroy();
-                    
+
                     chart = new Chart(ctx, {
                         type: 'bar',
                         data: {
                             labels: dates,
-                            datasets: [{
-                                label: 'Inverted Amount',
-                                data: invertedAmounts,
-                                backgroundColor: 'rgba(255, 99, 132, 0.2)',
-                                borderColor: 'rgba(255, 99, 132, 1)',
-                                borderWidth: 1
-                            }]
+                            datasets: datasets
                         },
                         options: {
                             responsive: true,
@@ -132,6 +154,7 @@
                             scales: {
                                 x: {
                                     type: 'time',
+                                    stacked: isStacked, // Stack x-axis when in stacked mode
                                     time: {
                                         unit: params.get('bucketSize') || 'day',
                                         displayFormats: {
@@ -143,6 +166,7 @@
                                 },
                                 y: {
                                     beginAtZero: true,
+                                    stacked: isStacked, // Stack y-axis when in stacked mode
                                     ticks: {
                                         callback: function(value) {
                                             return Math.abs(value);
@@ -155,6 +179,7 @@
                 })
                 .catch(error => console.error('Error loading the data:', error));
         }
+
 
         function applyFilter() {
             const startDate = document.getElementById('startDate').value;

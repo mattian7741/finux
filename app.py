@@ -51,28 +51,23 @@ def data():
     bucket_size = request.args.get('bucketSize', 'day')
 
     db = get_db()
-    params = [start_date, end_date]
-
-    if selected_categories:
-        placeholders = ', '.join(['?'] * len(selected_categories))
-        category_filter = f" AND tx_category IN ({placeholders})"
-        params.extend(selected_categories)
-    else:
-        category_filter = ""
 
     # Generate full date ranges
     date_ranges = generate_date_range(datetime.strptime(start_date, '%Y-%m-%d'), datetime.strptime(end_date, '%Y-%m-%d'), bucket_size)
-
-    # Aggregate data into each bucket based on the generated date ranges
-    result = []
-    for range_start, range_end in date_ranges:
-        query = f"""
-            SELECT SUM(tx_amount) AS amount
-            FROM all_transactions
-            WHERE tx_date BETWEEN ? AND ? {category_filter}
-        """
-        total = db.execute(query, (range_start, range_end, *selected_categories)).fetchone()["amount"]
-        result.append({'date': range_start, 'amount': total if total is not None else 0})
+    
+    # Prepare results for each selected category in each date range
+    result = {}
+    for category in selected_categories:
+        category_data = []
+        for range_start, range_end in date_ranges:
+            query = """
+                SELECT SUM(tx_amount) AS amount
+                FROM all_transactions
+                WHERE tx_date BETWEEN ? AND ? AND tx_category = ?
+            """
+            total = db.execute(query, (range_start, range_end, category)).fetchone()["amount"]
+            category_data.append({'date': range_start, 'amount': total if total is not None else 0})
+        result[category] = category_data
 
     return jsonify(result)
 
