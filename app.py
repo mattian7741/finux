@@ -52,9 +52,13 @@ def data():
 
     db = get_db()
 
+    # Default to all categories if none are selected
+    if not selected_categories:
+        selected_categories = [row['tx_category'] for row in db.execute("SELECT DISTINCT tx_category FROM all_transactions")]
+
     # Generate full date ranges
     date_ranges = generate_date_range(datetime.strptime(start_date, '%Y-%m-%d'), datetime.strptime(end_date, '%Y-%m-%d'), bucket_size)
-    
+
     # Prepare results for each selected category in each date range
     result = {}
     for category in selected_categories:
@@ -70,6 +74,7 @@ def data():
         result[category] = category_data
 
     return jsonify(result)
+
 
 def query_db(query, args=(), one=False):
     cur = get_db().execute(query, args)

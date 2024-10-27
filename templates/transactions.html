@@ -116,6 +116,13 @@
             fetch('/data?' + params.toString())
                 .then(response => response.json())
                 .then(data => {
+                    // Check if data is empty
+                    if (!data || Object.keys(data).length === 0) {
+                        console.warn("No data available for the selected criteria.");
+                        if (chart) chart.destroy(); // Clear chart if no data
+                        return;
+                    }
+
                     const dates = Object.values(data)[0].map(entry => entry.date); // Use dates from the first category
 
                     let datasets;
@@ -130,7 +137,9 @@
                         }));
                     } else {
                         // Single combined dataset
-                        const combinedData = dates.map((date, i) => Object.keys(data).reduce((sum, category) => sum + data[category][i].amount, 0));
+                        const combinedData = dates.map((date, i) => 
+                            Object.keys(data).reduce((sum, category) => sum + data[category][i].amount, 0)
+                        );
                         datasets = [{
                             label: 'Combined Amount',
                             data: combinedData.map(value => -value), // Invert amounts
@@ -179,7 +188,6 @@
                 })
                 .catch(error => console.error('Error loading the data:', error));
         }
-
 
         function applyFilter() {
             const startDate = document.getElementById('startDate').value;
