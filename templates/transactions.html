@@ -5,85 +5,100 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bank Statement</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 40px; }
-        table { width: 100%; border-collapse: collapse; }
+        body { font-family: Arial, sans-serif; margin: 20px; display: flex; flex-direction: column; align-items: center; }
+        .container { max-width: 1200px; width: 100%; }
+        h2 { text-align: center; }
+        .controls { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; margin-bottom: 20px; }
+        .controls label { font-weight: bold; margin-right: 8px; }
+        .date-range, .category-filter, .bucket-size { display: flex; align-items: center; }
+        select, input[type="date"] { padding: 5px; margin-right: 8px; }
+        .chart-container { margin: 20px 0; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
         th { background-color: #f2f2f2; }
-        select, input[type="date"] { margin-right: 10px; }
-        button { margin-top: 10px; }
+        .total-amount { font-weight: bold; margin-top: 10px; text-align: center; }
     </style>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3"></script>
 </head>
 <body>
-    <h2>Bank Statement</h2>
-    <a href="/merchants">View Merchants</a>
-
-    <!-- Date Range Picker Controls -->
-    <div>
-        <label for="startDate">Start Date:</label>
-        <input type="date" id="startDate">
+    <div class="container">
+        <header>
+            <a href="/merchants" style="display: block; text-align: center; margin-bottom: 20px;">View Merchants</a>
+            <h2>Transaction Dashboard</h2>
+        </header>
         
-        <label for="endDate">End Date:</label>
-        <input type="date" id="endDate">
+        <!-- Controls -->
+        <section class="controls">
+            <!-- Date Range Picker -->
+            <div class="date-range">
+                <label for="startDate">Start Date:</label>
+                <input type="date" id="startDate">
+                <label for="endDate">End Date:</label>
+                <input type="date" id="endDate">
+                <button onclick="applyFilter()">Apply Filter</button>
+            </div>
+            
+            <!-- Category Filter -->
+            <div class="category-filter">
+                <label for="categoryFilter">Category:</label>
+                <select id="categoryFilter" multiple>
+                    {% for category in categories %}
+                    <option value="{{ category[0] }}" {% if category[0] in selected_categories %}selected{% endif %}>{{ category[0] }}</option>
+                    {% endfor %}
+                </select>
+                <label for="stackToggle">Stacked View</label>
+                <input type="checkbox" id="stackToggle" onchange="toggleStackedMode()">
+            </div>
+
+            <!-- Bucket Size Selection -->
+            <div class="bucket-size">
+                <label>Bucket:</label>
+                <input type="radio" id="bucketDay" name="bucketSize" value="day" onchange="updateBucketSize('day')">
+                <label for="bucketDay">Day</label>
+                <input type="radio" id="bucketWeek" name="bucketSize" value="week" onchange="updateBucketSize('week')">
+                <label for="bucketWeek">Week</label>
+                <input type="radio" id="bucketMonth" name="bucketSize" value="month" onchange="updateBucketSize('month')">
+                <label for="bucketMonth">Month</label>
+            </div>
+        </section>
         
-        <button onclick="applyFilter()">Apply Filter</button>
+        <!-- Chart Display -->
+        <section class="chart-container">
+            <div class="total-amount">Total Amount: $<span id="totalAmount">{{ "%.2f"|format(total_amount or 0) }}</span></div>
+            <canvas id="amountChart"></canvas>
+        </section>
+        
+        <!-- Transactions Table -->
+        <section>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Hash</th>
+                        <th>Account</th>
+                        <th>Date</th>
+                        <th>Merchant</th>
+                        <th>Amount</th>
+                        <th>Category</th>
+                        <th>Note</th>
+                    </tr>
+                </thead>
+                <tbody id="transaction-body">
+                    {% for tx in transactions %}
+                    <tr>
+                        <td>{{ tx[0] if tx[0] is not none else '' }}</td>
+                        <td>{{ tx[1] if tx[1] is not none else '' }}</td>
+                        <td>{{ tx[2] if tx[2] is not none else '' }}</td>
+                        <td>{{ tx[3] if tx[3] is not none else '' }}</td>
+                        <td>{{ tx[4] if tx[4] is not none else '' }}</td>
+                        <td>{{ tx[5] if tx[5] is not none else '' }}</td>
+                        <td>{{ tx[6] if tx[6] is not none else '' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
     </div>
-
-    <!-- Category Filter -->
-    <label for="categoryFilter">Filter by Category:</label>
-    <select id="categoryFilter" multiple>
-        {% for category in categories %}
-        <option value="{{ category[0] }}" {% if category[0] in selected_categories %}selected{% endif %}>{{ category[0] }}</option>
-        {% endfor %}
-    </select>
-    <label for="stackToggle">Stacked Bar Chart</label>
-    <input type="checkbox" id="stackToggle" onchange="toggleStackedMode()" />
-
-    <!-- Bucket Size Selection -->
-    <div>
-        <label>Bucket Size:</label>
-        <input type="radio" id="bucketDay" name="bucketSize" value="day" onchange="updateBucketSize('day')"> 
-        <label for="bucketDay">Day</label>
-        <input type="radio" id="bucketWeek" name="bucketSize" value="week" onchange="updateBucketSize('week')"> 
-        <label for="bucketWeek">Week</label>
-        <input type="radio" id="bucketMonth" name="bucketSize" value="month" onchange="updateBucketSize('month')"> 
-        <label for="bucketMonth">Month</label>
-    </div>
-
-    <div>Total Amount: $<span id="totalAmount">{{ "%.2f"|format(total_amount or 0) }}</span></div>
-    
-    <div>
-        <canvas id="amountChart" style="width: 100%; height: 150px;"></canvas>
-    </div>
-
-    <table>
-        <thead>
-            <tr>
-                <th>Hash</th>
-                <th>Account</th>
-                <th>Date</th>
-                <th>Merchant</th>
-                <th>Amount</th>
-                <th>Category</th>
-                <th>Note</th>
-            </tr>
-        </thead>
-        <tbody id="transaction-body">
-            {% for tx in transactions %}
-            <tr>
-                <td>{{ tx[0] if tx[0] is not none else '' }}</td>
-                <td>{{ tx[1] if tx[1] is not none else '' }}</td>
-                <td>{{ tx[2] if tx[2] is not none else '' }}</td>
-                <td>{{ tx[3] if tx[3] is not none else '' }}</td>
-                <td>{{ tx[4] if tx[4] is not none else '' }}</td>
-                <td>{{ tx[5] if tx[5] is not none else '' }}</td>
-                <td>{{ tx[6] if tx[6] is not none else '' }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
 
     <script>
         let chart;
@@ -105,27 +120,25 @@
         });
 
         function toggleStackedMode() {
-            fetchAndRenderChartData(); // Reload the chart with the new stacking mode
+            fetchAndRenderChartData();
         }
 
         function fetchAndRenderChartData() {
             const ctx = document.getElementById('amountChart').getContext('2d');
             const params = new URLSearchParams(window.location.search);
-            const isStacked = document.getElementById('stackToggle').checked; // Check if stacked mode is enabled
+            const isStacked = document.getElementById('stackToggle').checked;
 
-            // Ensure tx_category parameters are set
+            // Get selected categories
             const selectedCategories = Array.from(document.getElementById('categoryFilter').selectedOptions).map(option => option.value);
-            params.delete('tx_category');  // Clear previous selections
+            params.delete('tx_category');
             selectedCategories.forEach(cat => params.append('tx_category', cat));
 
-            // Choose the appropriate endpoint based on stacking mode
             const endpoint = isStacked ? '/data' : '/data_combined';
 
             fetch(endpoint + '?' + params.toString())
                 .then(response => response.json())
                 .then(data => {
                     if (!data || Object.keys(data).length === 0) {
-                        console.warn("No data available for the selected criteria.");
                         if (chart) chart.destroy();
                         return;
                     }
@@ -137,15 +150,14 @@
                         datasets = Object.keys(data).map((category, index) => ({
                             label: category,
                             data: data[category].map(entry => -entry.amount),
-                            backgroundColor: `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, 0.5)`,
-                            borderColor: `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, 1)`,
+                            backgroundColor: `rgba(${Math.random() * 255}, ${Math.random() * 255}, ${Math.random() * 255}, 0.5)`,
+                            borderColor: `rgba(${Math.random() * 255}, ${Math.random() * 255}, ${Math.random() * 255}, 1)`,
                             borderWidth: 1
                         }));
                     } else {
-                        const combinedData = data.map(entry => -entry.amount);
                         datasets = [{
                             label: 'Combined Amount',
-                            data: combinedData,
+                            data: data.map(entry => -entry.amount),
                             backgroundColor: 'rgba(75, 192, 192, 0.5)',
                             borderColor: 'rgba(75, 192, 192, 1)',
                             borderWidth: 1
@@ -162,28 +174,18 @@
                         },
                         options: {
                             responsive: true,
-                            maintainAspectRatio: false,
+                            maintainAspectRatio: true,
+                            aspectRatio: 4,  // Control the aspect ratio to approximate 300px height
                             scales: {
                                 x: {
                                     type: 'time',
                                     stacked: isStacked,
-                                    time: {
-                                        unit: params.get('bucketSize') || 'day',
-                                        displayFormats: {
-                                            day: 'MMM d',
-                                            week: 'MMM d',
-                                            month: 'MMM yyyy'
-                                        }
-                                    }
+                                    time: { unit: params.get('bucketSize') || 'day' }
                                 },
                                 y: {
                                     beginAtZero: true,
                                     stacked: isStacked,
-                                    ticks: {
-                                        callback: function(value) {
-                                            return Math.abs(value);
-                                        }
-                                    }
+                                    ticks: { callback: value => Math.abs(value) }
                                 }
                             }
                         }
@@ -192,40 +194,17 @@
                 .catch(error => console.error('Error loading the data:', error));
         }
 
-
         function applyFilter() {
-            event.preventDefault();
-            const select = document.getElementById('categoryFilter');
-            const selectedCategories = Array.from(select.selectedOptions).map(option => option.value);
             const queryParams = new URLSearchParams(window.location.search);
-
-            // Update the date range and selected categories in the URL
             queryParams.set('startDate', document.getElementById('startDate').value);
             queryParams.set('endDate', document.getElementById('endDate').value);
-            queryParams.delete('tx_category'); // Clear previous category selections
+            queryParams.delete('tx_category');
+            const selectedCategories = Array.from(document.getElementById('categoryFilter').selectedOptions).map(option => option.value);
             selectedCategories.forEach(cat => queryParams.append('tx_category', cat));
-
             window.location.search = queryParams.toString();
         }
 
-        // function applyFilter() {
-        //     const startDate = document.getElementById('startDate').value;
-        //     const endDate = document.getElementById('endDate').value;
-        //     const selectedCategories = Array.from(document.getElementById('categoryFilter').selectedOptions).map(option => option.value);
-        //     const bucketSize = document.querySelector('input[name="bucketSize"]:checked').value;
-
-        //     const queryParams = new URLSearchParams();
-
-        //     if (startDate) queryParams.set('startDate', startDate);
-        //     if (endDate) queryParams.set('endDate', endDate);
-        //     queryParams.set('bucketSize', bucketSize);
-        //     selectedCategories.forEach(cat => queryParams.append('tx_category', cat));
-
-        //     window.location.search = queryParams.toString();
-        // }
-
         function updateBucketSize(size) {
-            // Update bucket size in URL and refresh data with new setting
             const params = new URLSearchParams(window.location.search);
             params.set('bucketSize', size);
             window.location.search = params.toString();
