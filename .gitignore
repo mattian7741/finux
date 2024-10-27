@@ -1,0 +1,128 @@
+# macOS-specific
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# macOS Trash folder
+.Trashes
+
+# macOS System files
+._*
+.Spotlight-V100
+.TemporaryItems
+.fseventsd
+.VolumeIcon.icns
+.icon
+.DocumentRevisions-V100
+.com.apple.timemachine.donotpresent
+
+# Thumbnails
+com.apple.quicklook.thumbnails
+
+# Vim swap files
+*.swp
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+venv/
+*.egg
+
+# Node.js / JavaScript
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+dist/
+coverage/
+*.tsbuildinfo
+
+# Ruby
+*.gem
+*.rbc
+vendor/bundle
+.rvmrc
+.rvm/
+.rbenv-*
+.gemfile.lock
+
+# Java
+*.class
+*.jar
+*.war
+*.ear
+target/
+out/
+.gradle/
+.build/
+*.iml
+
+# Go
+bin/
+pkg/
+*.exe
+*.test
+*.out
+
+# PHP
+/vendor/
+/composer.lock
+
+# Visual Studio Code
+.vscode/
+.history/
+*.code-workspace
+
+# Xcode
+*.pbxuser
+*.xcuserstate
+*.xcworkspace
+xcuserdata/
+*.moved-aside
+DerivedData/
+*.xcuserdatad/
+*.xccheckout
+
+# macOS Archive files
+*.ipa
+*.dSYM
+*.xcarchive
+
+# macOS Package managers
+Carthage/Build/
+Pods/
+Cartfile.resolved
+Cartfile.private
+*.xcodeproj/*/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcshareddata/
+
+# macOS IDE files
+.idea/
+*.idea/*
+*.iml
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*.swn
+*.bak
+
+# Logs
+logs/
+*.log
+
+# Other IDEs
+*.sublime-workspace
+*.sublime-project
+

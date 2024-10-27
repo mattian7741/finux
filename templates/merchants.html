@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Merchants</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; cursor: pointer; }
+        .link { margin-bottom: 20px; display: block; }
+        .sorted-asc::after { content: ' 🔼'; }
+        .sorted-desc::after { content: ' 🔽'; }
+    </style>
+</head>
+<body>
+    <a href="/" class="link">Back to Dashboard</a>
+    <h2>Merchants</h2>
+    <table>
+        <thead>
+            <tr>
+                <th onclick="toggleSort(0)">Merchant ID</th>
+                <th onclick="toggleSort(1)">City</th>
+                <th onclick="toggleSort(2)">Region</th>
+                <th onclick="toggleSort(3)">Country</th>
+                <th onclick="toggleSort(4)">Phone Number</th>
+                <th onclick="toggleSort(5)">URL</th>
+                <th onclick="toggleSort(6)">Category (Editable)</th>
+                <th onclick="toggleSort(7)">Transaction Category (Read-Only)</th>
+            </tr>
+        </thead>
+        <tbody id="merchants-body">
+            {% for merchant in merchants %}
+            <tr>
+                <td>{{ merchant['merchant_id'] if merchant['merchant_id'] is not none else '' }}</td>
+                <td>{{ merchant['city'] if merchant['city'] is not none else '' }}</td>
+                <td>{{ merchant['region'] if merchant['region'] is not none else '' }}</td>
+                <td>{{ merchant['country'] if merchant['country'] is not none else '' }}</td>
+                <td>{{ merchant['phone_number'] if merchant['phone_number'] is not none else '' }}</td>
+                <td>
+                    {% if merchant['url'] %}
+                        <a href="{{ merchant['url'] }}" target="_blank">{{ merchant['url'] }}</a>
+                    {% else %}
+                        <!-- Display an empty cell if no URL is available -->
+                    {% endif %}
+                </td>
+                <td>
+                    <input type="text" id="category-{{ merchant['merchant_id'] }}" 
+                           value="{{ merchant['category'] if merchant['category'] is not none else '' }}" 
+                           onchange="updateCategory('{{ merchant['merchant_id'] }}', this.value)">
+                </td>
+                <td onclick="copyTxCategoryToCategory('{{ merchant['merchant_id'] }}', '{{ merchant['tx_category'] }}')">
+                    {{ merchant['tx_category'] if merchant['tx_category'] is not none else '' }}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <script>
+        // Track the current sort state
+        let sortState = {
+            column: null,
+            order: 'none'  // 'asc' for ascending, 'desc' for descending, 'none' for original
+        };
+
+        // Function to toggle sorting
+        function toggleSort(columnIndex) {
+            // If the same column is clicked, toggle its order
+            if (sortState.column === columnIndex) {
+                sortState.order = sortState.order === 'asc' ? 'desc' : (sortState.order === 'desc' ? 'none' : 'asc');
+            } else {
+                // New column clicked, set it to ascending by default
+                sortState.column = columnIndex;
+                sortState.order = 'asc';
+            }
+
+            // Clear previous sorted class from headers
+            document.querySelectorAll('th').forEach(th => th.classList.remove('sorted-asc', 'sorted-desc'));
+
+            // Set the sorted class on the current column header
+            const th = document.querySelectorAll('th')[columnIndex];
+            if (sortState.order === 'asc') {
+                th.classList.add('sorted-asc');
+            } else if (sortState.order === 'desc') {
+                th.classList.add('sorted-desc');
+            }
+
+            // Sort the table based on the current sort state
+            sortTable(columnIndex, sortState.order);
+        }
+
+        // Function to sort table rows
+        function sortTable(columnIndex, order) {
+            const tableBody = document.getElementById('merchants-body');
+            const rows = Array.from(tableBody.rows);
+
+            if (order === 'none') {
+                // If 'none', reset to original order
+                rows.sort((a, b) => a.rowIndex - b.rowIndex);
+            } else {
+                // Sort rows based on column data
+                rows.sort((a, b) => {
+                    const cellA = a.cells[columnIndex];
+                    const cellB = b.cells[columnIndex];
+
+                    // Check if the cell contains an input, use its value; otherwise, use textContent
+                    const valueA = cellA.querySelector('input') ? cellA.querySelector('input').value.trim() : cellA.textContent.trim();
+                    const valueB = cellB.querySelector('input') ? cellB.querySelector('input').value.trim() : cellB.textContent.trim();
+
+                    if (order === 'asc') {
+                        return valueA.localeCompare(valueB, undefined, { numeric: true });
+                    } else {
+                        return valueB.localeCompare(valueA, undefined, { numeric: true });
+                    }
+                });
+            }
+
+            // Reattach sorted rows to the table body
+            rows.forEach(row => tableBody.appendChild(row));
+        }
+
+        // Function to update the Category field
+        function updateCategory(merchantId, newCategory) {
+            fetch(`/update_category`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    merchant_id: merchantId,
+                    category: newCategory
+                })
+            }).then(response => {
+                if (response.ok) {
+                    console.log('Category updated successfully');
+                } else {
+                    console.error('Failed to update category');
+                }
+            }).catch(error => console.error('Error:', error));
+        }
+
+        // Function to copy Transaction Category to Category if Category is empty
+        function copyTxCategoryToCategory(merchantId, txCategory) {
+            const categoryInput = document.getElementById(`category-${merchantId}`);
+            if (categoryInput.value.trim() === '') {  // Only copy if Category is empty
+                categoryInput.value = txCategory;
+                updateCategory(merchantId, txCategory);  // Save the change via POST request
+            }
+        }
+    </script>
+</body>
+</html>

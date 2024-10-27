@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bank Statement</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        select, input[type="date"] { margin-right: 10px; }
+        button { margin-top: 10px; }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3"></script>
+</head>
+<body>
+    <h2>Bank Statement</h2>
+    <a href="/merchants">View Merchants</a>
+
+    <!-- Date Range Picker Controls -->
+    <div>
+        <label for="startDate">Start Date:</label>
+        <input type="date" id="startDate">
+        
+        <label for="endDate">End Date:</label>
+        <input type="date" id="endDate">
+        
+        <button onclick="applyFilter()">Apply Filter</button>
+    </div>
+
+    <!-- Category Filter -->
+    <label for="categoryFilter">Filter by Category:</label>
+    <select id="categoryFilter" multiple>
+        {% for category in categories %}
+        <option value="{{ category[0] }}" {% if category[0] in selected_categories %}selected{% endif %}>{{ category[0] }}</option>
+        {% endfor %}
+    </select>
+
+    <!-- Bucket Size Selection -->
+    <div>
+        <label>Bucket Size:</label>
+        <input type="radio" id="bucketDay" name="bucketSize" value="day" onchange="updateBucketSize('day')"> 
+        <label for="bucketDay">Day</label>
+        <input type="radio" id="bucketWeek" name="bucketSize" value="week" onchange="updateBucketSize('week')"> 
+        <label for="bucketWeek">Week</label>
+        <input type="radio" id="bucketMonth" name="bucketSize" value="month" onchange="updateBucketSize('month')"> 
+        <label for="bucketMonth">Month</label>
+    </div>
+
+    <div>Total Amount: $<span id="totalAmount">{{ "%.2f"|format(total_amount or 0) }}</span></div>
+    
+    <div>
+        <canvas id="amountChart" style="width: 100%; height: 150px;"></canvas>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Hash</th>
+                <th>Account</th>
+                <th>Date</th>
+                <th>Merchant</th>
+                <th>Amount</th>
+                <th>Category</th>
+                <th>Note</th>
+            </tr>
+        </thead>
+        <tbody id="transaction-body">
+            {% for tx in transactions %}
+            <tr>
+                <td>{{ tx[0] if tx[0] is not none else '' }}</td>
+                <td>{{ tx[1] if tx[1] is not none else '' }}</td>
+                <td>{{ tx[2] if tx[2] is not none else '' }}</td>
+                <td>{{ tx[3] if tx[3] is not none else '' }}</td>
+                <td>{{ tx[4] if tx[4] is not none else '' }}</td>
+                <td>{{ tx[5] if tx[5] is not none else '' }}</td>
+                <td>{{ tx[6] if tx[6] is not none else '' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <script>
+        let chart;
+
+        document.addEventListener("DOMContentLoaded", function() {
+            const today = new Date().toISOString().split('T')[0];
+            const startOfYear = new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0];
+            const urlParams = new URLSearchParams(window.location.search);
+
+            // Set date range based on URL params or default to the current year
+            document.getElementById('startDate').value = urlParams.get('startDate') || startOfYear;
+            document.getElementById('endDate').value = urlParams.get('endDate') || today;
+
+            // Initialize the bucket size from URL params
+            const bucketSize = urlParams.get('bucketSize') || 'day';
+            document.querySelector(`input[name="bucketSize"][value="${bucketSize}"]`).checked = true;
+
+            fetchAndRenderChartData();
+        });
+
+        function fetchAndRenderChartData() {
+            const ctx = document.getElementById('amountChart').getContext('2d');
+            const params = new URLSearchParams(window.location.search);
+
+            fetch('/data?' + params.toString())
+                .then(response => response.json())
+                .then(data => {
+                    const dates = data.map(entry => entry.date);
+                    const invertedAmounts = data.map(entry => -entry.amount);
+
+                    if (chart) chart.destroy();
+                    
+
+
+                    chart = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: dates,
+                            datasets: [{
+                                label: 'Inverted Amount',
+                                data: invertedAmounts,
+                                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                                borderColor: 'rgba(255, 99, 132, 1)',
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                x: {
+                                    type: 'time',  // Ensure the type is set to 'time' for time-based scaling
+                                    time: {
+                                        unit: params.get('bucketSize') || 'day',
+                                        displayFormats: {
+                                            day: 'MMM dd',
+                                            week: 'MMM dd',
+                                            month: 'MMM yyyy'
+                                        }
+                                    }
+                                },
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        callback: function(value) {
+                                            return Math.abs(value);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+
+
+                })
+                .catch(error => console.error('Error loading the data:', error));
+        }
+
+        function applyFilter() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const selectedCategories = Array.from(document.getElementById('categoryFilter').selectedOptions).map(option => option.value);
+            const bucketSize = document.querySelector('input[name="bucketSize"]:checked').value;
+
+            const queryParams = new URLSearchParams();
+
+            if (startDate) queryParams.set('startDate', startDate);
+            if (endDate) queryParams.set('endDate', endDate);
+            queryParams.set('bucketSize', bucketSize);
+            selectedCategories.forEach(cat => queryParams.append('tx_category', cat));
+
+            window.location.search = queryParams.toString();
+        }
+
+        function updateBucketSize(size) {
+            // Update bucket size in URL and refresh data with new setting
+            const params = new URLSearchParams(window.location.search);
+            params.set('bucketSize', size);
+            window.location.search = params.toString();
+        }
+    </script>
+</body>
+</html>
