@@ -34,6 +34,45 @@
 
         a { color: #007bff; text-decoration: none; }
         a:hover { text-decoration: underline; }
+
+        /* Popup styling */
+        #popup-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #popup {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            width: 600px;
+            max-height: 80%;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        #popup h3 {
+            margin-top: 0;
+        }
+
+        #popup .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1.2rem;
+            color: #333;
+        }
     </style>
 </head>
 <body>
@@ -60,7 +99,9 @@
             <tbody id="merchants-body">
                 {% for merchant in merchants %}
                 <tr>
-                    <td>{{ merchant['merchant_id'] if merchant['merchant_id'] is not none else '' }}</td>
+                    <td onclick="showTransactions('{{ merchant['merchant_id'] }}')" style="cursor: pointer; color: #007bff; text-decoration: underline;">
+                        {{ merchant['merchant_id'] if merchant['merchant_id'] is not none else '' }}
+                    </td>
                     <td>{{ merchant['city'] if merchant['city'] is not none else '' }}</td>
                     <td>{{ merchant['region'] if merchant['region'] is not none else '' }}</td>
                     <td>{{ merchant['country'] if merchant['country'] is not none else '' }}</td>
@@ -86,62 +127,29 @@
         </table>
     </div>
 
+    <!-- Popup Overlay -->
+    <div id="popup-overlay" onclick="closePopup()">
+        <div id="popup" onclick="event.stopPropagation()">
+            <span class="close-btn" onclick="closePopup()">&#215;</span>
+            <div id="popup-content"></div>
+        </div>
+    </div>
+
     <script>
-        let sortState = { column: null, order: 'none' };
-
-        function toggleSort(columnIndex) {
-            if (sortState.column === columnIndex) {
-                sortState.order = sortState.order === 'asc' ? 'desc' : (sortState.order === 'desc' ? 'none' : 'asc');
-            } else {
-                sortState.column = columnIndex;
-                sortState.order = 'asc';
-            }
-
-            document.querySelectorAll('th').forEach(th => th.classList.remove('sorted-asc', 'sorted-desc'));
-            const th = document.querySelectorAll('th')[columnIndex];
-            if (sortState.order === 'asc') th.classList.add('sorted-asc');
-            else if (sortState.order === 'desc') th.classList.add('sorted-desc');
-            
-            sortTable(columnIndex, sortState.order);
+        function showTransactions(merchantId) {
+            // Encode the merchant_id to handle special characters like "&"
+            const encodedMerchantId = encodeURIComponent(merchantId);
+            fetch(`/merchant_detail?merchant_id=${encodedMerchantId}`)
+                .then(response => response.text())
+                .then(html => {
+                    document.getElementById('popup-content').innerHTML = html;
+                    document.getElementById('popup-overlay').style.display = 'flex';
+                })
+                .catch(error => console.error('Error loading transaction details:', error));
         }
 
-        function sortTable(columnIndex, order) {
-            const tableBody = document.getElementById('merchants-body');
-            const rows = Array.from(tableBody.rows);
-
-            if (order === 'none') {
-                rows.sort((a, b) => a.rowIndex - b.rowIndex);
-            } else {
-                rows.sort((a, b) => {
-                    const cellA = a.cells[columnIndex];
-                    const cellB = b.cells[columnIndex];
-                    const valueA = cellA.querySelector('input') ? cellA.querySelector('input').value.trim() : cellA.textContent.trim();
-                    const valueB = cellB.querySelector('input') ? cellB.querySelector('input').value.trim() : cellB.textContent.trim();
-
-                    if (order === 'asc') return valueA.localeCompare(valueB, undefined, { numeric: true });
-                    else return valueB.localeCompare(valueA, undefined, { numeric: true });
-                });
-            }
-            rows.forEach(row => tableBody.appendChild(row));
-        }
-
-        function updateCategory(merchantId, newCategory) {
-            fetch(`/update_category`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ merchant_id: merchantId, category: newCategory })
-            }).then(response => {
-                if (response.ok) console.log('Category updated successfully');
-                else console.error('Failed to update category');
-            }).catch(error => console.error('Error:', error));
-        }
-
-        function copyTxCategoryToCategory(merchantId, txCategory) {
-            const categoryInput = document.getElementById(`category-${merchantId}`);
-            if (categoryInput.value.trim() === '') {
-                categoryInput.value = txCategory;
-                updateCategory(merchantId, txCategory);
-            }
+        function closePopup() {
+            document.getElementById('popup-overlay').style.display = 'none';
         }
     </script>
 </body>

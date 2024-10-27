@@ -174,6 +174,22 @@ def update_category():
     db.commit()
     return jsonify({'success': True})
 
+@app.route('/merchant_detail')
+def merchant_detail():
+    merchant_id = request.args.get('merchant_id')
+    db = get_db()
+    cursor = db.cursor()
+
+    # Prepare SQL query and log it for debugging
+    query = "SELECT * FROM all_transactions WHERE tx_merchant = ?"
+    print(f"Executing SQL query: {query} with merchant_id: {merchant_id}")
+    
+    # Execute the query
+    cursor.execute(query, (merchant_id,))
+    transactions = cursor.fetchall()
+    db.close()
+
+    return render_template('merchant_detail.html', merchant_id=merchant_id, transactions=transactions)
 
 if __name__ == '__main__':
     app.run(debug=True)
