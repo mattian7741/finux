@@ -30,6 +30,14 @@ dist/
 build/
 venv/
 *.egg
+__pycache__/
+*.bak.py
+
+# SQLite Databases
+*.db
+
+# API Keys and sensitive files
+openai_key.txt
 
 # Node.js / JavaScript
 node_modules/
@@ -125,4 +133,7 @@ logs/
 # Other IDEs
 *.sublime-workspace
 *.sublime-project
+
+# Custom Folders
+/unwanted_folder_example/
 
