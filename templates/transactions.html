@@ -113,7 +113,12 @@
             const params = new URLSearchParams(window.location.search);
             const isStacked = document.getElementById('stackToggle').checked; // Check if stacked mode is enabled
 
-            // Choose the appropriate endpoint based on the stacking mode
+            // Ensure tx_category parameters are set
+            const selectedCategories = Array.from(document.getElementById('categoryFilter').selectedOptions).map(option => option.value);
+            params.delete('tx_category');  // Clear previous selections
+            selectedCategories.forEach(cat => params.append('tx_category', cat));
+
+            // Choose the appropriate endpoint based on stacking mode
             const endpoint = isStacked ? '/data' : '/data_combined';
 
             fetch(endpoint + '?' + params.toString())
