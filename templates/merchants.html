@@ -5,23 +5,41 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Merchants</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; display: flex; flex-direction: column; align-items: center; }
-        .container { max-width: 1200px; width: 100%; }
-        h2 { text-align: center; margin-bottom: 20px; }
-        .link { display: block; text-align: center; margin-bottom: 20px; text-decoration: none; color: #0066cc; }
+        /* Existing styles */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: Arial, sans-serif; background-color: #f8f9fa; color: #333; display: flex; justify-content: center; padding: 40px; }
+        .container { max-width: 1200px; width: 100%; background: #fff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); padding: 20px; }
+        h2 { text-align: center; color: #333; font-size: 1.75rem; margin-bottom: 20px; }
+        .link { display: block; text-align: center; margin-bottom: 20px; font-size: 0.9rem; color: #007bff; text-decoration: none; }
+        .link:hover { text-decoration: underline; }
+
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
-        th { background-color: #f2f2f2; cursor: pointer; }
+        th { background-color: #f2f2f2; cursor: pointer; color: #555; font-weight: bold; }
+        th:hover { background-color: #e8e8e8; }
         .sorted-asc::after { content: ' 🔼'; }
         .sorted-desc::after { content: ' 🔽'; }
-        .editable-cell { text-align: center; }
-        input[type="text"] { width: 100%; padding: 5px; }
+
+        td.editable-cell { text-align: center; }
+
+        /* New style for wider Category input field */
+        input[type="text"] {
+            width: 100%; 
+            min-width: 200px;  /* Ensures a wider default width */
+            padding: 5px; 
+            border: 1px solid #ccc; 
+            border-radius: 4px; 
+            font-size: 0.9rem;
+        }
+
+        a { color: #007bff; text-decoration: none; }
+        a:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <a href="/" class="link">Transactions</a>
+            <a href="/" class="link">Back to Transactions</a>
             <h2>Merchants</h2>
         </header>
         

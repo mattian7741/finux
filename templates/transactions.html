@@ -5,18 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bank Statement</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; display: flex; flex-direction: column; align-items: center; }
-        .container { max-width: 1200px; width: 100%; }
-        h2 { text-align: center; }
-        .controls { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; margin-bottom: 20px; }
-        .controls label { font-weight: bold; margin-right: 8px; }
-        .date-range, .category-filter, .bucket-size { display: flex; align-items: center; }
-        select, input[type="date"] { padding: 5px; margin-right: 8px; }
-        .chart-container { margin: 20px 0; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: Arial, sans-serif; background-color: #f8f9fa; color: #333; display: flex; justify-content: center; padding: 40px; }
+        .container { max-width: 1200px; width: 100%; background: #fff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); padding: 20px; }
+        h2 { text-align: center; color: #333; font-size: 1.75rem; margin-bottom: 20px; }
+        header { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 30px; }
+        header a { color: #007bff; text-decoration: none; font-size: 0.9rem; }
+        header a:hover { text-decoration: underline; }
+
+        .controls { display: flex; flex-wrap: wrap; gap: 20px; justify-content: space-between; padding: 10px; background-color: #f1f1f1; border-radius: 8px; margin-bottom: 20px; }
+        .controls > div { display: flex; align-items: center; gap: 8px; }
+        .controls label { font-weight: bold; color: #555; }
+        .controls select, .controls input[type="date"], .controls button { padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9rem; }
+        .controls button { background-color: #007bff; color: #fff; cursor: pointer; }
+        .controls button:hover { background-color: #0056b3; }
+
+        .chart-container { margin: 20px 0; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #f9f9f9; height: 300px; display: flex; align-items: center; justify-content: center; }
+        .total-amount { font-weight: bold; font-size: 1.1rem; margin-bottom: 10px; text-align: center; color: #333; }
+        #amountChart { max-width: 100%; height: 300px !important; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; background-color: #fff; border-radius: 8px; overflow: hidden; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
         th { background-color: #f2f2f2; }
-        .total-amount { font-weight: bold; margin-top: 10px; text-align: center; }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3"></script>
@@ -66,7 +76,7 @@
         <!-- Chart Display -->
         <section class="chart-container">
             <div class="total-amount">Total Amount: $<span id="totalAmount">{{ "%.2f"|format(total_amount or 0) }}</span></div>
-            <canvas id="amountChart"></canvas>
+            <canvas id="amountChart" style="width: 100%; height: 300px;"></canvas>
         </section>
         
         <!-- Transactions Table -->
@@ -108,11 +118,9 @@
             const startOfYear = new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0];
             const urlParams = new URLSearchParams(window.location.search);
 
-            // Set date range based on URL params or default to the current year
             document.getElementById('startDate').value = urlParams.get('startDate') || startOfYear;
             document.getElementById('endDate').value = urlParams.get('endDate') || today;
 
-            // Initialize the bucket size from URL params
             const bucketSize = urlParams.get('bucketSize') || 'day';
             document.querySelector(`input[name="bucketSize"][value="${bucketSize}"]`).checked = true;
 
@@ -128,7 +136,6 @@
             const params = new URLSearchParams(window.location.search);
             const isStacked = document.getElementById('stackToggle').checked;
 
-            // Get selected categories
             const selectedCategories = Array.from(document.getElementById('categoryFilter').selectedOptions).map(option => option.value);
             params.delete('tx_category');
             selectedCategories.forEach(cat => params.append('tx_category', cat));
@@ -168,25 +175,13 @@
 
                     chart = new Chart(ctx, {
                         type: 'bar',
-                        data: {
-                            labels: dates,
-                            datasets: datasets
-                        },
+                        data: { labels: dates, datasets: datasets },
                         options: {
                             responsive: true,
-                            maintainAspectRatio: true,
-                            aspectRatio: 4,  // Control the aspect ratio to approximate 300px height
+                            maintainAspectRatio: false,
                             scales: {
-                                x: {
-                                    type: 'time',
-                                    stacked: isStacked,
-                                    time: { unit: params.get('bucketSize') || 'day' }
-                                },
-                                y: {
-                                    beginAtZero: true,
-                                    stacked: isStacked,
-                                    ticks: { callback: value => Math.abs(value) }
-                                }
+                                x: { type: 'time', stacked: isStacked, time: { unit: params.get('bucketSize') || 'day' }},
+                                y: { beginAtZero: true, stacked: isStacked, ticks: { callback: value => Math.abs(value) }}
                             }
                         }
                     });
