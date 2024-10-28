@@ -48,7 +48,16 @@
                 <input type="date" id="endDate">
                 <button onclick="applyFilter()">Apply Filter</button>
             </div>
-            
+            <!-- Account Filter -->
+            <div class="account-filter">
+                <label for="accountFilter">Account:</label>
+                <select id="accountFilter" multiple>
+                    {% for account in accounts %}
+                    <option value="{{ account[0] }}" {% if account[0] in selected_accounts %}selected{% endif %}>{{ account[0] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
             <!-- Category Filter -->
             <div class="category-filter">
                 <label for="categoryFilter">Category:</label>
@@ -140,6 +149,10 @@
             params.delete('tx_category');
             selectedCategories.forEach(cat => params.append('tx_category', cat));
 
+            const selectedAccounts = Array.from(document.getElementById('accountFilter').selectedOptions).map(option => option.value);  // New: Get selected accounts
+            params.delete('account');
+            selectedAccounts.forEach(acc => params.append('account', acc));  // New: Append accounts to query
+
             const endpoint = isStacked ? '/data' : '/data_combined';
 
             fetch(endpoint + '?' + params.toString())
@@ -194,10 +207,17 @@
             queryParams.set('startDate', document.getElementById('startDate').value);
             queryParams.set('endDate', document.getElementById('endDate').value);
             queryParams.delete('tx_category');
+            queryParams.delete('account');  // New: Clear account filters from URL
+
             const selectedCategories = Array.from(document.getElementById('categoryFilter').selectedOptions).map(option => option.value);
             selectedCategories.forEach(cat => queryParams.append('tx_category', cat));
+
+            const selectedAccounts = Array.from(document.getElementById('accountFilter').selectedOptions).map(option => option.value);  // New: Get selected accounts
+            selectedAccounts.forEach(acc => queryParams.append('account', acc));  // New: Append accounts to query
+
             window.location.search = queryParams.toString();
         }
+
 
         function updateBucketSize(size) {
             const params = new URLSearchParams(window.location.search);

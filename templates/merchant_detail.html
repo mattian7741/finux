@@ -1,34 +1,26 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Merchant Transactions</title>
-</head>
-<body>
-    <div id="popup-content">
-        <h3>{{ merchant_id }}</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>Transaction ID</th>
-                    <th>Date</th>
-                    <th>Amount</th>
-                    <th>Category</th>
-                    <th>Note</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for transaction in transactions %}
-                <tr>
-                    <td>{{ transaction['tx_id'] }}</td>
-                    <td>{{ transaction['tx_date'] }}</td>
-                    <td>${{ transaction['tx_amount'] | round(2) }}</td>
-                    <td>{{ transaction['tx_category'] }}</td>
-                    <td>{{ transaction['tx_note'] }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</body>
-</html>
+<table>
+    <thead>
+        <tr>
+            <th>Hash</th>
+            <th>Account</th>
+            <th>Date</th>
+            <th>Merchant</th>
+            <th>Amount</th>
+            <th>Category</th>
+            <th>Note</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for tx in transactions %}
+        <tr>
+            <td>{{ tx['unique_hash'] }}</td>
+            <td>{{ tx['Account'] }}</td>
+            <td>{{ tx['tx_date'] }}</td>
+            <td>{{ tx['tx_merchant'] }}</td>
+            <td>{{ tx['tx_amount'] }}</td>
+            <td>{{ tx['tx_category'] }}</td>
+            <td>{{ tx['tx_note'] }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>

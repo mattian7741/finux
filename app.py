@@ -49,6 +49,7 @@ def data_combined():
     end_date = request.args.get('endDate') or datetime.now().strftime('%Y-%m-%d')
     bucket_size = request.args.get('bucketSize', 'day')
     selected_categories = request.args.getlist('tx_category')
+    selected_accounts = request.args.getlist('account')  # New: Get selected accounts
 
     db = get_db()
     
@@ -59,16 +60,21 @@ def data_combined():
     query = "SELECT SUM(tx_amount) AS amount FROM all_transactions WHERE tx_date BETWEEN ? AND ?"
     params = [start_date, end_date]
 
-    # Adjust query to include category filtering if selected_categories is provided
+    # Adjust query to include category and account filtering if provided
     if selected_categories:
         placeholders = ','.join('?' * len(selected_categories))
         query += f" AND tx_category IN ({placeholders})"
         params.extend(selected_categories)
     
+    if selected_accounts:
+        placeholders = ','.join('?' * len(selected_accounts))
+        query += f" AND Account IN ({placeholders})"
+        params.extend(selected_accounts)
+
     result = []
     for range_start, range_end in date_ranges:
-        # Update the date range for each period while keeping category params if applicable
-        query_params = [range_start, range_end] + (selected_categories if selected_categories else [])
+        # Update the date range for each period while keeping category and account params if applicable
+        query_params = [range_start, range_end] + (selected_categories if selected_categories else []) + (selected_accounts if selected_accounts else [])
         total = db.execute(query, query_params).fetchone()["amount"]
         result.append({'date': range_start, 'amount': total if total is not None else 0})
 
@@ -77,6 +83,7 @@ def data_combined():
 @app.route('/data')
 def data():
     selected_categories = request.args.getlist('tx_category')
+    selected_accounts = request.args.getlist('account')  # New: Get selected accounts
     start_date = request.args.get('startDate') or datetime(datetime.now().year, 1, 1).strftime('%Y-%m-%d')
     end_date = request.args.get('endDate') or datetime.now().strftime('%Y-%m-%d')
     bucket_size = request.args.get('bucketSize', 'day')
@@ -100,7 +107,15 @@ def data():
                 FROM all_transactions
                 WHERE tx_date BETWEEN ? AND ? AND tx_category = ?
             """
-            total = db.execute(query, (range_start, range_end, category)).fetchone()["amount"]
+            query_params = [range_start, range_end, category]
+            
+            # Add account filter if accounts are selected
+            if selected_accounts:
+                placeholders = ','.join('?' * len(selected_accounts))
+                query += f" AND Account IN ({placeholders})"
+                query_params.extend(selected_accounts)
+                
+            total = db.execute(query, query_params).fetchone()["amount"]
             category_data.append({'date': range_start, 'amount': total if total is not None else 0})
         result[category] = category_data
 
@@ -118,39 +133,51 @@ def home():
     start_date = request.args.get('startDate') or datetime(datetime.now().year, 1, 1).strftime('%Y-%m-%d')
     end_date = request.args.get('endDate') or datetime.now().strftime('%Y-%m-%d')
     selected_categories = request.args.getlist('tx_category')
+    selected_accounts = request.args.getlist('account')  # New: get selected accounts
     
     db = get_db()
     params = [start_date, end_date]
 
-    # Adjust query to filter transactions by date range and categories if specified
+    # Adjust query to filter transactions by date range, categories, and accounts if specified
     query = 'SELECT * FROM all_transactions WHERE tx_date BETWEEN ? AND ?'
     
     if selected_categories:
         placeholders = ','.join('?' * len(selected_categories))
         query += f' AND tx_category IN ({placeholders})'
         params.extend(selected_categories)
+        
+    if selected_accounts:  # New: Add filtering for accounts
+        placeholders = ','.join('?' * len(selected_accounts))
+        query += f' AND Account IN ({placeholders})'
+        params.extend(selected_accounts)
 
-    # Fetch transactions within date range and selected categories (if any)
+    # Fetch transactions within date range, selected categories, and selected accounts (if any)
     transactions = db.execute(query, params).fetchall()
 
-    # Calculate the total amount within the selected date range and categories
+    # Calculate the total amount within the selected date range, categories, and accounts
     sum_query = 'SELECT SUM(tx_amount) FROM all_transactions WHERE tx_date BETWEEN ? AND ?'
     if selected_categories:
         sum_query += f' AND tx_category IN ({placeholders})'
+    if selected_accounts:
+        sum_query += f' AND Account IN ({placeholders})'
     total_amount = db.execute(sum_query, params).fetchone()[0] or 0
 
-    # Fetch distinct categories for filter options
+    # Fetch distinct categories and accounts for filter options
     categories = db.execute('SELECT DISTINCT tx_category FROM all_transactions WHERE tx_category IS NOT NULL ORDER BY tx_category').fetchall()
+    accounts = db.execute('SELECT DISTINCT Account FROM all_transactions WHERE Account IS NOT NULL ORDER BY Account').fetchall()  # New: Fetch accounts
 
     return render_template(
         'transactions.html',
         transactions=transactions,
         categories=categories,
+        accounts=accounts,  # New: Pass accounts to template
         selected_categories=selected_categories,
+        selected_accounts=selected_accounts,  # New: Pass selected accounts to template
         total_amount=total_amount,
         start_date=start_date,
         end_date=end_date
     )
+
 
 @app.route('/merchants')
 def merchants():
