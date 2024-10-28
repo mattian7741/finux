@@ -7,3 +7,4 @@ Bugs and Features BACKLOG:
 - [ ] When filtering on account, and using the stacked checkbox, the categories are not the subset applicable to the account, but rather all of them.  This is incorrect.
 - [x] The Total value shoudl move from the left of the graph to a better place.
 - [ ] Single apostrophe (') in merchants table prevents the click for popup modal
+- [ ] Default sort order for merchant should be Date descending
