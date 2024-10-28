@@ -72,19 +72,23 @@
         <table>
             <thead>
                 <tr>
-                    <th onclick="toggleSort(0)">Merchant ID</th>
-                    <th onclick="toggleSort(1)">City</th>
-                    <th onclick="toggleSort(2)">Region</th>
-                    <th onclick="toggleSort(3)">Country</th>
-                    <th onclick="toggleSort(4)">Phone Number</th>
-                    <th onclick="toggleSort(5)">URL</th>
-                    <th onclick="toggleSort(6)">Category (Editable)</th>
-                    <th onclick="toggleSort(7)">Transaction Category (Read-Only)</th>
+                    <th onclick="toggleSort(0)">Date</th> <!-- New Date column -->
+                    <th onclick="toggleSort(1)">Count</th> <!-- New Count column -->                    
+                    <th onclick="toggleSort(2)">Merchant ID</th>
+                    <th onclick="toggleSort(3)">City</th>
+                    <th onclick="toggleSort(4)">Region</th>
+                    <th onclick="toggleSort(5)">Country</th>
+                    <th onclick="toggleSort(6)">Phone Number</th>
+                    <th onclick="toggleSort(7)">URL</th>
+                    <th onclick="toggleSort(8)">Category (Editable)</th>
+                    <th onclick="toggleSort(9)">Transaction Category (Read-Only)</th>
                 </tr>
             </thead>
             <tbody id="merchants-body">
                 {% for merchant in merchants %}
                 <tr>
+                    <td>{{ merchant['latest_date'] if merchant['latest_date'] is not none else 'N/A' }}</td> <!-- New Date cell -->
+                    <td>{{ merchant['transaction_count'] }}</td> <!-- New Count cell -->
                     <td onclick="showTransactions('{{ merchant['merchant_id'] }}')" style="cursor: pointer;">
                         {{ merchant['merchant_id'] if merchant['merchant_id'] is not none else '' }}
                     </td>

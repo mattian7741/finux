@@ -182,8 +182,26 @@ def home():
 @app.route('/merchants')
 def merchants():
     db = get_db()
-    # Fetch all columns including tx_category from the merchant table
-    merchants = db.execute('SELECT merchant_id, city, region, country, phone_number, url, category, tx_category FROM merchant').fetchall()
+    # Fetch all necessary columns, plus the max date and transaction count for each merchant
+    merchants = db.execute('''
+        SELECT 
+            merchant.merchant_id, 
+            merchant.city, 
+            merchant.region, 
+            merchant.country, 
+            merchant.phone_number, 
+            merchant.url, 
+            merchant.category, 
+            merchant.tx_category,
+            MAX(all_transactions.tx_date) AS latest_date,
+            COUNT(all_transactions.tx_merchant) AS transaction_count
+        FROM 
+            merchant
+        LEFT JOIN 
+            all_transactions ON merchant.merchant_id = all_transactions.tx_merchant
+        GROUP BY 
+            merchant.merchant_id
+    ''').fetchall()
     return render_template('merchants.html', merchants=merchants)
 
 @app.route('/update_category', methods=['POST'])
