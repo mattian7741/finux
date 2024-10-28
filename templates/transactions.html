@@ -66,6 +66,7 @@
                     <option value="{{ category[0] }}" {% if category[0] in selected_categories %}selected{% endif %}>{{ category[0] }}</option>
                     {% endfor %}
                 </select>
+                <div class="total-amount">$<span id="totalAmount">{{ "%.2f"|format(total_amount or 0) }}</span></div>
                 <label for="stackToggle">Stacked View</label>
                 <input type="checkbox" id="stackToggle" onchange="toggleStackedMode()">
             </div>
@@ -84,7 +85,6 @@
         
         <!-- Chart Display -->
         <section class="chart-container">
-            <div class="total-amount">Total Amount: $<span id="totalAmount">{{ "%.2f"|format(total_amount or 0) }}</span></div>
             <canvas id="amountChart" style="width: 100%; height: 300px;"></canvas>
         </section>
         
