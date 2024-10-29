@@ -4,30 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bank Statement</title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: Arial, sans-serif; background-color: #f8f9fa; color: #333; display: flex; justify-content: center; padding: 40px; }
-        .container { max-width: 1200px; width: 100%; background: #fff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); padding: 20px; }
-        h2 { text-align: center; color: #333; font-size: 1.75rem; margin-bottom: 20px; }
-        header { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 30px; }
-        header a { color: #007bff; text-decoration: none; font-size: 0.9rem; }
-        header a:hover { text-decoration: underline; }
-
-        .controls { display: flex; flex-wrap: wrap; gap: 20px; justify-content: space-between; padding: 10px; background-color: #f1f1f1; border-radius: 8px; margin-bottom: 20px; }
-        .controls > div { display: flex; align-items: center; gap: 8px; }
-        .controls label { font-weight: bold; color: #555; }
-        .controls select, .controls input[type="date"], .controls button { padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9rem; }
-        .controls button { background-color: #007bff; color: #fff; cursor: pointer; }
-        .controls button:hover { background-color: #0056b3; }
-
-        .chart-container { margin: 20px 0; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #f9f9f9; height: 300px; display: flex; align-items: center; justify-content: center; }
-        .total-amount { font-weight: bold; font-size: 1.1rem; margin-bottom: 10px; text-align: center; color: #333; }
-        #amountChart { max-width: 100%; height: 300px !important; }
-
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; background-color: #fff; border-radius: 8px; overflow: hidden; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #f2f2f2; }
-    </style>
+    <link rel="stylesheet" href="/static/css/styles.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3"></script>
 </head>
@@ -37,56 +14,6 @@
             <a href="/merchants" style="display: block; text-align: center; margin-bottom: 20px;">View Merchants</a>
             <h2>Transaction Dashboard</h2>
         </header>
-        
-        <!-- Controls -->
-        <section class="controls">
-            <!-- Date Range Picker -->
-            <div class="date-range">
-                <label for="startDate">Start Date:</label>
-                <input type="date" id="startDate">
-                <label for="endDate">End Date:</label>
-                <input type="date" id="endDate">
-                <button onclick="applyFilter()">Apply Filter</button>
-            </div>
-            <!-- Account Filter -->
-            <div class="account-filter">
-                <label for="accountFilter">Account:</label>
-                <select id="accountFilter" multiple>
-                    {% for account in accounts %}
-                    <option value="{{ account[0] }}" {% if account[0] in selected_accounts %}selected{% endif %}>{{ account[0] }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <!-- Category Filter -->
-            <div class="category-filter">
-                <label for="categoryFilter">Category:</label>
-                <select id="categoryFilter" multiple>
-                    {% for category in categories %}
-                    <option value="{{ category[0] }}" {% if category[0] in selected_categories %}selected{% endif %}>{{ category[0] }}</option>
-                    {% endfor %}
-                </select>
-                <div class="total-amount">$<span id="totalAmount">{{ "%.2f"|format(total_amount or 0) }}</span></div>
-                <label for="stackToggle">Stacked View</label>
-                <input type="checkbox" id="stackToggle" onchange="toggleStackedMode()">
-            </div>
-
-            <!-- Bucket Size Selection -->
-            <div class="bucket-size">
-                <label>Bucket:</label>
-                <input type="radio" id="bucketDay" name="bucketSize" value="day" onchange="updateBucketSize('day')">
-                <label for="bucketDay">Day</label>
-                <input type="radio" id="bucketWeek" name="bucketSize" value="week" onchange="updateBucketSize('week')">
-                <label for="bucketWeek">Week</label>
-                <input type="radio" id="bucketMonth" name="bucketSize" value="month" onchange="updateBucketSize('month')">
-                <label for="bucketMonth">Month</label>
-            </div>
-        </section>
-        
-        <!-- Chart Display -->
-        <section class="chart-container">
-            <canvas id="amountChart" style="width: 100%; height: 300px;"></canvas>
-        </section>
         
         <!-- Transactions Table -->
         <section>
@@ -108,7 +35,9 @@
                         <td>{{ tx[0] if tx[0] is not none else '' }}</td>
                         <td>{{ tx[1] if tx[1] is not none else '' }}</td>
                         <td>{{ tx[2] if tx[2] is not none else '' }}</td>
-                        <td>{{ tx[3] if tx[3] is not none else '' }}</td>
+                        <td onclick="showTransactions('{{ tx[3] }}')" style="cursor: pointer;">
+                            {{ tx[3] if tx[3] is not none else '' }}
+                        </td>
                         <td>{{ tx[4] if tx[4] is not none else '' }}</td>
                         <td>{{ tx[5] if tx[5] is not none else '' }}</td>
                         <td>{{ tx[6] if tx[6] is not none else '' }}</td>
@@ -119,111 +48,14 @@
         </section>
     </div>
 
-    <script>
-        let chart;
+    <!-- Popup Overlay -->
+    <div id="popup-overlay" onclick="closePopup()">
+        <div id="popup" onclick="event.stopPropagation()">
+            <span class="close-btn" onclick="closePopup()"> &#215;</span>
+            <div id="popup-content"></div>
+        </div>
+    </div>
 
-        document.addEventListener("DOMContentLoaded", function() {
-            const today = new Date().toISOString().split('T')[0];
-            const startOfYear = new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0];
-            const urlParams = new URLSearchParams(window.location.search);
-
-            document.getElementById('startDate').value = urlParams.get('startDate') || startOfYear;
-            document.getElementById('endDate').value = urlParams.get('endDate') || today;
-
-            const bucketSize = urlParams.get('bucketSize') || 'day';
-            document.querySelector(`input[name="bucketSize"][value="${bucketSize}"]`).checked = true;
-
-            fetchAndRenderChartData();
-        });
-
-        function toggleStackedMode() {
-            fetchAndRenderChartData();
-        }
-
-        function fetchAndRenderChartData() {
-            const ctx = document.getElementById('amountChart').getContext('2d');
-            const params = new URLSearchParams(window.location.search);
-            const isStacked = document.getElementById('stackToggle').checked;
-
-            const selectedCategories = Array.from(document.getElementById('categoryFilter').selectedOptions).map(option => option.value);
-            params.delete('tx_category');
-            selectedCategories.forEach(cat => params.append('tx_category', cat));
-
-            const selectedAccounts = Array.from(document.getElementById('accountFilter').selectedOptions).map(option => option.value);  // New: Get selected accounts
-            params.delete('account');
-            selectedAccounts.forEach(acc => params.append('account', acc));  // New: Append accounts to query
-
-            const endpoint = isStacked ? '/data' : '/data_combined';
-
-            fetch(endpoint + '?' + params.toString())
-                .then(response => response.json())
-                .then(data => {
-                    if (!data || Object.keys(data).length === 0) {
-                        if (chart) chart.destroy();
-                        return;
-                    }
-
-                    const dates = isStacked ? Object.values(data)[0].map(entry => entry.date) : data.map(entry => entry.date);
-
-                    let datasets;
-                    if (isStacked) {
-                        datasets = Object.keys(data).map((category, index) => ({
-                            label: category,
-                            data: data[category].map(entry => -entry.amount),
-                            backgroundColor: `rgba(${Math.random() * 255}, ${Math.random() * 255}, ${Math.random() * 255}, 0.5)`,
-                            borderColor: `rgba(${Math.random() * 255}, ${Math.random() * 255}, ${Math.random() * 255}, 1)`,
-                            borderWidth: 1
-                        }));
-                    } else {
-                        datasets = [{
-                            label: 'Combined Amount',
-                            data: data.map(entry => -entry.amount),
-                            backgroundColor: 'rgba(75, 192, 192, 0.5)',
-                            borderColor: 'rgba(75, 192, 192, 1)',
-                            borderWidth: 1
-                        }];
-                    }
-
-                    if (chart) chart.destroy();
-
-                    chart = new Chart(ctx, {
-                        type: 'bar',
-                        data: { labels: dates, datasets: datasets },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            scales: {
-                                x: { type: 'time', stacked: isStacked, time: { unit: params.get('bucketSize') || 'day' }},
-                                y: { beginAtZero: true, stacked: isStacked, ticks: { callback: value => Math.abs(value) }}
-                            }
-                        }
-                    });
-                })
-                .catch(error => console.error('Error loading the data:', error));
-        }
-
-        function applyFilter() {
-            const queryParams = new URLSearchParams(window.location.search);
-            queryParams.set('startDate', document.getElementById('startDate').value);
-            queryParams.set('endDate', document.getElementById('endDate').value);
-            queryParams.delete('tx_category');
-            queryParams.delete('account');  // New: Clear account filters from URL
-
-            const selectedCategories = Array.from(document.getElementById('categoryFilter').selectedOptions).map(option => option.value);
-            selectedCategories.forEach(cat => queryParams.append('tx_category', cat));
-
-            const selectedAccounts = Array.from(document.getElementById('accountFilter').selectedOptions).map(option => option.value);  // New: Get selected accounts
-            selectedAccounts.forEach(acc => queryParams.append('account', acc));  // New: Append accounts to query
-
-            window.location.search = queryParams.toString();
-        }
-
-
-        function updateBucketSize(size) {
-            const params = new URLSearchParams(window.location.search);
-            params.set('bucketSize', size);
-            window.location.search = params.toString();
-        }
-    </script>
+    <script src="/static/js/scripts.js"></script>
 </body>
 </html>

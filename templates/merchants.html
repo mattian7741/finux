@@ -4,62 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Merchants</title>
-    <style>
-        /* General styles */
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: Arial, sans-serif; background-color: #f8f9fa; color: #333; display: flex; justify-content: center; padding: 40px; }
-        .container { max-width: 1200px; width: 100%; background: #fff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); padding: 20px; }
-        h2 { text-align: center; color: #333; font-size: 1.75rem; margin-bottom: 20px; }
-        .link { display: block; text-align: center; margin-bottom: 20px; font-size: 0.9rem; color: #007bff; text-decoration: none; }
-        .link:hover { text-decoration: underline; }
-        
-        /* Table styling */
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; background-color: #fff; border-radius: 8px; overflow: hidden; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #f2f2f2; cursor: pointer; color: #555; font-weight: bold; }
-        th:hover { background-color: #e8e8e8; }
-        .sorted-asc::after { content: ' 🔼'; }
-        .sorted-desc::after { content: ' 🔽'; }
-        td.editable-cell { text-align: center; }
-        
-        /* Popup styling */
-        #popup-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-        }
-        #popup {
-            background: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-            width: 80%;
-            max-height: 80%;
-            overflow-y: auto;
-            position: relative;
-        }
-        #popup h3 { margin-top: 0; }
-        #popup .close-btn {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 1.2rem;
-            color: #333;
-        }
-        /* Popup table styling to match the dashboard */
-        #popup table { width: 100%; border-collapse: collapse; margin-top: 20px; background-color: #fff; }
-        #popup th, #popup td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        #popup th { background-color: #f2f2f2; }
-    </style>
+    <link rel="stylesheet" href="/static/css/styles.css">
 </head>
 <body>
     <div class="container">
@@ -123,81 +68,6 @@
         </div>
     </div>
 
-    <script>
-        // Function to show transactions in the modal
-        function showTransactions(merchantId) {
-            const encodedMerchantId = encodeURIComponent(merchantId);
-            fetch(`/merchant_detail?merchant_id=${encodedMerchantId}`)
-                .then(response => response.text())
-                .then(html => {
-                    document.getElementById('popup-content').innerHTML = html;
-                    document.getElementById('popup-overlay').style.display = 'flex';
-                })
-                .catch(error => console.error('Error loading transaction details:', error));
-        }
-
-        // Function to close the popup
-        function closePopup() {
-            document.getElementById('popup-overlay').style.display = 'none';
-        }
-
-        // Sorting functionality
-        let sortState = { column: null, order: 'none' };
-
-        function toggleSort(columnIndex) {
-            if (sortState.column === columnIndex) {
-                sortState.order = sortState.order === 'asc' ? 'desc' : (sortState.order === 'desc' ? 'none' : 'asc');
-            } else {
-                sortState.column = columnIndex;
-                sortState.order = 'asc';
-            }
-
-            document.querySelectorAll('th').forEach(th => th.classList.remove('sorted-asc', 'sorted-desc'));
-            const th = document.querySelectorAll('th')[columnIndex];
-            if (sortState.order === 'asc') th.classList.add('sorted-asc');
-            else if (sortState.order === 'desc') th.classList.add('sorted-desc');
-            
-            sortTable(columnIndex, sortState.order);
-        }
-
-        function sortTable(columnIndex, order) {
-            const tableBody = document.getElementById('merchants-body');
-            const rows = Array.from(tableBody.rows);
-
-            if (order === 'none') {
-                rows.sort((a, b) => a.rowIndex - b.rowIndex);
-            } else {
-                rows.sort((a, b) => {
-                    const cellA = a.cells[columnIndex];
-                    const cellB = b.cells[columnIndex];
-                    const valueA = cellA.querySelector('input') ? cellA.querySelector('input').value.trim() : cellA.textContent.trim();
-                    const valueB = cellB.querySelector('input') ? cellB.querySelector('input').value.trim() : cellB.textContent.trim();
-
-                    if (order === 'asc') return valueA.localeCompare(valueB, undefined, { numeric: true });
-                    else return valueB.localeCompare(valueA, undefined, { numeric: true });
-                });
-            }
-            rows.forEach(row => tableBody.appendChild(row));
-        }
-
-        function updateCategory(merchantId, newCategory) {
-            fetch(`/update_category`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ merchant_id: merchantId, category: newCategory })
-            }).then(response => {
-                if (response.ok) console.log('Category updated successfully');
-                else console.error('Failed to update category');
-            }).catch(error => console.error('Error:', error));
-        }
-
-        function copyTxCategoryToCategory(merchantId, txCategory) {
-            const categoryInput = document.getElementById(`category-${merchantId}`);
-            if (categoryInput.value.trim() === '') {
-                categoryInput.value = txCategory;
-                updateCategory(merchantId, txCategory);
-            }
-        }
-    </script>
+    <script src="/static/js/scripts.js"></script>
 </body>
 </html>

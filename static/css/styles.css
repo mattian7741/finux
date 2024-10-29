@@ -1,0 +1,66 @@
+/* General styles */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, sans-serif; background-color: #f8f9fa; color: #333; display: flex; justify-content: center; padding: 40px; }
+.container { max-width: 1200px; width: 100%; background: #fff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); padding: 20px; }
+h2 { text-align: center; color: #333; font-size: 1.75rem; margin-bottom: 20px; }
+.link { display: block; text-align: center; margin-bottom: 20px; font-size: 0.9rem; color: #007bff; text-decoration: none; }
+.link:hover { text-decoration: underline; }
+
+/* Table styling */
+table { width: 100%; border-collapse: collapse; margin-top: 20px; background-color: #fff; border-radius: 8px; overflow: hidden; }
+th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+th { background-color: #f2f2f2; cursor: pointer; color: #555; font-weight: bold; }
+th:hover { background-color: #e8e8e8; }
+.sorted-asc::after { content: ' \ud83d\udd3c'; }
+.sorted-desc::after { content: ' \ud83d\udd3d'; }
+td.editable-cell { text-align: center; }
+
+/* Popup styling */
+#popup-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+#popup {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    width: 80%;
+    max-height: 80%;
+    overflow-y: auto;
+    position: relative;
+}
+#popup h3 { margin-top: 0; }
+#popup .close-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 1.2rem;
+    color: #333;
+}
+/* Popup table styling to match the dashboard */
+#popup table { width: 100%; border-collapse: collapse; margin-top: 20px; background-color: #fff; }
+#popup th, #popup td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+#popup th { background-color: #f2f2f2; }
+
+/* Additional styles for transactions.html */
+header { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 30px; }
+.controls { display: flex; flex-wrap: wrap; gap: 20px; justify-content: space-between; padding: 10px; background-color: #f1f1f1; border-radius: 8px; margin-bottom: 20px; }
+.controls > div { display: flex; align-items: center; gap: 8px; }
+.controls label { font-weight: bold; color: #555; }
+.controls select, .controls input[type="date"], .controls button { padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9rem; }
+.controls button { background-color: #007bff; color: #fff; cursor: pointer; }
+.controls button:hover { background-color: #0056b3; }
+.chart-container { margin: 20px 0; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #f9f9f9; height: 300px; display: flex; align-items: center; justify-content: center; }
+.total-amount { font-weight: bold; font-size: 1.1rem; margin-bottom: 10px; text-align: center; color: #333; }
+#amountChart { max-width: 100%; height: 300px !important; }

@@ -1,0 +1,26 @@
+<!-- Popup Overlay -->
+<div id="popup-overlay" onclick="closePopup()">
+    <div id="popup" onclick="event.stopPropagation()">
+        <span class="close-btn" onclick="closePopup()"> &#215;</span>
+        <div id="popup-content"></div>
+    </div>
+</div>
+
+<script>
+    // Function to show transactions in the modal
+    function showTransactions(merchantId) {
+        const encodedMerchantId = encodeURIComponent(merchantId);
+        fetch(`/merchant_detail?merchant_id=${encodedMerchantId}`)
+            .then(response => response.text())
+            .then(html => {
+                document.getElementById('popup-content').innerHTML = html;
+                document.getElementById('popup-overlay').style.display = 'flex';
+            })
+            .catch(error => console.error('Error loading transaction details:', error));
+    }
+
+    // Function to close the popup
+    function closePopup() {
+        document.getElementById('popup-overlay').style.display = 'none';
+    }
+</script>

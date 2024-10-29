@@ -201,6 +201,9 @@ def merchants():
             all_transactions ON merchant.merchant_id = all_transactions.tx_merchant
         GROUP BY 
             merchant.merchant_id
+        HAVING 
+            COUNT(all_transactions.tx_merchant) > 1
+
     ''').fetchall()
     return render_template('merchants.html', merchants=merchants)
 
