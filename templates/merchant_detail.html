@@ -1,26 +1,49 @@
-<table>
-    <thead>
-        <tr>
-            <th>Hash</th>
-            <th>Account</th>
-            <th>Date</th>
-            <th>Merchant</th>
-            <th>Amount</th>
-            <th>Category</th>
-            <th>Note</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for tx in transactions %}
-        <tr>
-            <td>{{ tx['unique_hash'] }}</td>
-            <td>{{ tx['Account'] }}</td>
-            <td>{{ tx['tx_date'] }}</td>
-            <td>{{ tx['tx_merchant'] }}</td>
-            <td>{{ tx['tx_amount'] }}</td>
-            <td>{{ tx['tx_category'] }}</td>
-            <td>{{ tx['tx_note'] }}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Merchant Details</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <a href="/merchants" class="link">Back to Merchants</a>
+            <h2>Merchant Details</h2>
+        </header>
+        
+        <!-- Transactions Table -->
+        <section>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Hash</th>
+                        <th>Account</th>
+                        <th>Date</th>
+                        <th>Merchant</th>
+                        <th>Amount</th>
+                        <th>Category</th>
+                        <th>Note</th>
+                    </tr>
+                </thead>
+                <tbody id="transaction-body">
+                    {% for tx in transactions %}
+                    <tr>
+                        <td>{{ tx['unique_hash'] }}</td>
+                        <td>{{ tx['Account'] }}</td>
+                        <td>{{ tx['tx_date'] }}</td>
+                        <td>{{ tx['tx_merchant'] }}</td>
+                        <td>{{ tx['tx_amount'] }}</td>
+                        <td>{{ tx['tx_category'] }}</td>
+                        <td>{{ tx['tx_note'] }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+    </div>
+
+    <script src="/static/js/scripts.js"></script>
+</body>
+</html>
