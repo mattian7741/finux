@@ -4,7 +4,7 @@ from flask import Flask, render_template, request, jsonify, g
 import sqlite3
 
 app = Flask(__name__)
-DATABASE = '../finances/financials.db'
+DATABASE = '../findb/financials.db'
 
 def get_db():
     if 'db' not in g:
