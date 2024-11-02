@@ -103,9 +103,9 @@ function fetchAndRenderChartData() {
     params.delete('tx_category');
     selectedCategories.forEach(cat => params.append('tx_category', cat));
 
-    const selectedAccounts = Array.from(document.getElementById('accountFilter').selectedOptions).map(option => option.value);  // New: Get selected accounts
+    const selectedAccounts = Array.from(document.getElementById('accountFilter').selectedOptions).map(option => option.value);
     params.delete('account');
-    selectedAccounts.forEach(acc => params.append('account', acc));  // New: Append accounts to query
+    selectedAccounts.forEach(acc => params.append('account', acc));
 
     const endpoint = isStacked ? '/data' : '/data_combined';
 
@@ -118,43 +118,101 @@ function fetchAndRenderChartData() {
             }
 
             const dates = isStacked ? Object.values(data)[0].map(entry => entry.date) : data.map(entry => entry.date);
-
             let datasets;
+            let cumulativeSum = 0; // Initialize cumulative sum variable
+            let lineData = []; // Array to hold line data for integral
+
             if (isStacked) {
                 datasets = Object.keys(data).map((category, index) => ({
                     label: category,
-                    data: data[category].map(entry => -entry.amount),
-                    backgroundColor: `rgba(${Math.random() * 255}, ${Math.random() * 255}, ${Math.random() * 255}, 0.5)`,
+                    data: data[category].map(entry => entry.amount),
+                    backgroundColor: data[category].map(entry => getColorBasedOnValue(entry.amount)), // Set color based on value
                     borderColor: `rgba(${Math.random() * 255}, ${Math.random() * 255}, ${Math.random() * 255}, 1)`,
-                    borderWidth: 1
+                    borderWidth: 0
                 }));
             } else {
                 datasets = [{
                     label: 'Combined Amount',
-                    data: data.map(entry => -entry.amount),
-                    backgroundColor: 'rgba(75, 192, 192, 0.5)',
+                    data: data.map(entry => entry.amount),
+                    backgroundColor: data.map(entry => getColorBasedOnValue(entry.amount)), // Set color based on value
                     borderColor: 'rgba(75, 192, 192, 1)',
-                    borderWidth: 1
+                    borderWidth: 0
                 }];
+            }
+
+            // Calculate the cumulative sum for the line chart
+            if (!isStacked) {
+                data.forEach(entry => {
+                    cumulativeSum += entry.amount; // Incremental sum
+                    lineData.push(cumulativeSum); // Push the current sum to lineData
+                });
             }
 
             if (chart) chart.destroy();
 
+            // Create the chart
             chart = new Chart(ctx, {
                 type: 'bar',
-                data: { labels: dates, datasets: datasets },
+                data: {
+                    labels: dates,
+                    datasets: [
+                        ...datasets,
+                        {
+                            label: 'Cumulative Sum',
+                            data: lineData.map(sum => sum),
+                            type: 'line',
+                            backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                            fill: true,
+                            borderWidth: 0,
+                            pointRadius: 0 // This removes the circles at each point
+                        }
+                    ]
+                },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     scales: {
                         x: { type: 'time', stacked: isStacked, time: { unit: params.get('bucketSize') || 'day' }},
-                        y: { beginAtZero: true, stacked: isStacked, ticks: { callback: value => Math.abs(value) }}
+                        y: { beginAtZero: true, stacked: isStacked }
                     }
                 }
             });
         })
         .catch(error => console.error('Error loading the data:', error));
 }
+
+// Function to determine color based on the value
+function getColorBasedOnValue(value) {
+    const maxSaturationValue = 1000; // Value above which color saturation is fully applied
+    const minSaturationValue = 0; // Minimum value for saturation
+
+    let r, g, b; // RGB color components
+    let saturation;
+
+    // Determine saturation based on the absolute value of the input
+    if (value === 0) {
+        saturation = 0; // 0 saturation if value is 0
+    } else {
+        saturation = Math.min(1.0, Math.abs(value) * 0.001); // Calculate saturation
+    }
+
+    // Set colors based on the sign of the value
+    if (value > 0) {
+        // Positive values - Green
+        r = 0; // No red
+        g = Math.floor(127 * saturation); // Green based on saturation
+        b = Math.floor(63 * saturation);; // No blue
+    } else {
+        // Negative values - Red
+        r = Math.floor(127 * saturation); // Red based on saturation
+        g = 0; // No green
+        b = 0; // No blue
+    }
+
+    return `rgba(${r}, ${g}, ${b}, 0.5)`; // Return the color in RGBA format
+}
+
+
 
 function applyFilter() {
     const queryParams = new URLSearchParams(window.location.search);
